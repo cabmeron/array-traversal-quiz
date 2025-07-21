@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced C# Loop & Pointer Visualization Quiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .option-card {
+            border: 2px solid transparent;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .option-card:hover {
+            transform: scale(1.03);
+            border-color: #4f46e5; /* indigo-600 */
+        }
+        .grid-cell {
+            position: relative;
+            background-color: #e0e7ff; /* indigo-100 */
+            border: 1px solid #c7d2fe; /* indigo-200 */
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+        }
+        .dark .grid-cell {
+            background-color: #3730a3; /* indigo-800 */
+            border: 1px solid #4338ca; /* indigo-700 */
+        }
+        /* Single Pointer Highlight */
+        .grid-cell.highlighted { background-color: #f59e0b; } /* amber-500 */
+        .dark .grid-cell.highlighted { background-color: #d97706; } /* amber-600 */
+
+        /* Multi-Pointer Highlights */
+        .grid-cell.p1 { background-color: #ec4899; } /* pink-500 */
+        .grid-cell.p2 { background-color: #22c55e; } /* green-500 */
+        .grid-cell.p3 { background-color: #3b82f6; } /* blue-500 */
+        
+        /* Sliding Window Highlight */
+        .grid-cell.window { background-color: rgba(165, 180, 252, 0.5); } /* indigo-300 with opacity */
+        .dark .grid-cell.window { background-color: rgba(67, 56, 202, 0.5); } /* indigo-700 with opacity */
+
+
+        .correct-viz {
+            border-color: #22c55e !important; /* green-500 */
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.5);
+        }
+        .incorrect-viz {
+             border-color: #ef4444 !important; /* red-500 */
+             opacity: 0.6;
+        }
+        .code-block {
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 flex items-center justify-center min-h-screen p-4">
+
+    <div id="quiz-container" class="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-4xl p-6 md:p-8">
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-white text-center mb-2">Advanced Loop & Pointer Quiz</h1>
+        <p class="text-center text-gray-500 dark:text-gray-400 mb-6">Which animation correctly shows the loop's path?</p>
+
+        <div id="question-area">
+            <!-- Question will be injected here -->
+        </div>
+
+        <div id="feedback-area" class="mt-6 min-h-[50px]">
+            <!-- Feedback will be injected here -->
+        </div>
+
+        <div class="mt-4 flex justify-center">
+            <button id="next-btn" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-all">
+                Next Question
+            </button>
+        </div>
+         <div class="mt-6 text-center">
+            <button id="reset-btn" class="text-sm text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                New Quiz
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const questionArea = document.getElementById('question-area');
+        const feedbackArea = document.getElementById('feedback-area');
+        const nextBtn = document.getElementById('next-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        let animationIntervals = [];
+        let shuffledGenerators = [];
+
+        function generateRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+        
+        // --- Question Generators ---
+
+        function generateBasic1DQuestion() {
+            const length = generateRandomInt(7, 9);
+            const patterns = [
+                { type: '1d-forward', code: `for (int i = 0; i < ${length}; i++) {\n  var value = arr[i];\n}`, explanation: 'A standard forward loop iterates from 0 to the end.' },
+                { type: '1d-backward', code: `for (int i = ${length - 1}; i >= 0; i--) {\n  var value = arr[i];\n}`, explanation: 'This loop starts at the end and iterates backwards to 0.' },
+                { type: '1d-skip-forward', code: `for (int i = 0; i < ${length}; i += 2) {\n  var value = arr[i];\n}`, explanation: 'This forward loop skips every other element.' }
+            ];
+            const selected = patterns[Math.floor(Math.random() * patterns.length)];
+            const options = shuffleArray(['1d-forward', '1d-backward', '1d-skip-forward']);
+
+            return {
+                code: `int[] arr = new int[${length}];\n${selected.code}`,
+                dims: { rows: 1, cols: length },
+                correctPattern: selected.type,
+                options,
+                explanation: selected.explanation
+            };
+        }
+        
+        function generateStandardDPQuestion() {
+            const rows = 4, cols = 5;
+            const code = `for (int i = 1; i < ${rows}; i++) {\n  for (int j = 1; j < ${cols}; j++) {\n    dp[i, j] = dp[i-1, j] + dp[i, j-1];\n  }\n}`;
+            const correctPattern = '2d-dp-standard';
+            const options = shuffleArray(['2d-dp-standard', '2d-dp-reverse', '2d-spiral']);
+            return {
+                code,
+                dims: { rows, cols },
+                correctPattern,
+                options,
+                explanation: '<strong>Standard DP Traversal:</strong> This row-major loop starts from (1,1), common when the first row/column are base cases.'
+            };
+        }
+
+        function generateReverseDPQuestion() {
+            const rows = 4, cols = 5;
+            const code = `for (int i = ${rows - 1}; i >= 0; i--) {\n  for (int j = ${cols - 1}; j >= 0; j--) {\n    var value = grid[i, j];\n  }\n}`;
+            const correctPattern = '2d-dp-reverse';
+            const options = shuffleArray(['2d-dp-reverse', '2d-dp-standard', '2d-col-major']);
+            return {
+                code,
+                dims: { rows, cols },
+                correctPattern,
+                options,
+                explanation: '<strong>Reverse DP Traversal:</strong> Fills the table from bottom-right to top-left. Useful when a state depends on future states.'
+            };
+        }
+
+        function generateTwoPointerQuestion() {
+            const length = generateRandomInt(8, 10);
+            const code = `int left = 0, right = ${length - 1};\nwhile (left < right) {\n  var temp = arr[left];\n  arr[left] = arr[right];\n  arr[right] = temp;\n  left++;\n  right--;\n}`;
+            const options = shuffleArray(['2-pointer-inward', 'sliding-window', '1d-forward']);
+            return {
+                code,
+                dims: { rows: 1, cols: length },
+                correctPattern: '2-pointer-inward',
+                options,
+                explanation: '<strong>Two Pointers:</strong> The `left` and `right` pointers start at the ends and move towards the center.'
+            };
+        }
+
+        function generateSlidingWindowQuestion() {
+            const length = 9;
+            const windowSize = 4;
+            const code = `int left = 0;\nfor (int right = 0; right < ${length}; right++) {\n  // Process arr[right]...\n  if (right >= ${windowSize - 1}) {\n    // Process window from arr[left] to arr[right]\n    left++;\n  }\n}`;
+            const options = shuffleArray(['sliding-window', '2-pointer-inward', '1d-skip-forward']);
+            return {
+                code,
+                dims: { rows: 1, cols: length },
+                correctPattern: 'sliding-window',
+                options,
+                explanation: '<strong>Sliding Window:</strong> The window moves across the array. `right` expands it, and `left` contracts it to maintain a fixed size.'
+            };
+        }
+
+        function generateSpiralTraversalQuestion() {
+            const rows = 4, cols = 5;
+            const code = `int top = 0, bottom = ${rows - 1}, left = 0, right = ${cols - 1};\nwhile (top <= bottom && left <= right) {\n  // Traverse right, then down, then left, then up\n  // then shrink boundaries...\n}`;
+            const options = shuffleArray(['2d-spiral', '2d-row-major', '2d-dp-reverse']);
+            return {
+                code,
+                dims: { rows, cols },
+                correctPattern: '2d-spiral',
+                options,
+                explanation: '<strong>Spiral Traversal:</strong> Traverses the grid\'s outer layers and spirals inwards by shrinking its boundaries.'
+            };
+        }
+
+        const allGenerators = [
+            generateBasic1DQuestion,
+            generateStandardDPQuestion,
+            generateReverseDPQuestion,
+            generateTwoPointerQuestion,
+            generateSlidingWindowQuestion,
+            generateSpiralTraversalQuestion,
+        ];
+
+        // --- Visualization Logic ---
+
+        function createVisualization(dims, pattern, containerId) {
+            const { rows, cols } = dims;
+            const vizContainer = document.getElementById(containerId);
+            vizContainer.innerHTML = '';
+            vizContainer.style.display = 'grid';
+            vizContainer.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+            vizContainer.style.gap = '4px';
+            const cellSize = Math.min(24, 250 / Math.max(rows, cols));
+            vizContainer.style.width = `${cols * (cellSize + 4)}px`;
+            vizContainer.style.height = `${rows * (cellSize + 4)}px`;
+
+            let cells = [];
+            for (let i = 0; i < rows * cols; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'grid-cell rounded-sm';
+                vizContainer.appendChild(cell);
+                cells.push(cell);
+            }
+
+            let sequence = [];
+            function generateSequence() {
+                switch (pattern) {
+                    // 1D Patterns
+                    case '1d-forward': for (let i = 0; i < cols; i++) sequence.push([{ index: i, class: 'highlighted' }]); break;
+                    case '1d-backward': for (let i = cols - 1; i >= 0; i--) sequence.push([{ index: i, class: 'highlighted' }]); break;
+                    case '1d-skip-forward': for (let i = 0; i < cols; i += 2) sequence.push([{ index: i, class: 'highlighted' }]); break;
+                    
+                    // 2D / DP Patterns
+                    case '2d-row-major': for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) sequence.push([{ index: r * cols + c, class: 'highlighted' }]); break;
+                    case '2d-col-major': for (let c = 0; c < cols; c++) for (let r = 0; r < rows; r++) sequence.push([{ index: r * cols + c, class: 'highlighted' }]); break;
+                    case '2d-dp-standard': for (let r = 1; r < rows; r++) for (let c = 1; c < cols; c++) sequence.push([{ index: r * cols + c, class: 'highlighted' }]); break;
+                    case '2d-dp-reverse': for (let r = rows - 1; r >= 0; r--) for (let c = cols - 1; c >= 0; c--) sequence.push([{ index: r * cols + c, class: 'highlighted' }]); break;
+                    case '2d-spiral':
+                        let top = 0, bottom = rows - 1, left = 0, right = cols - 1;
+                        while (top <= bottom && left <= right) {
+                            for (let i = left; i <= right; i++) sequence.push([{ index: top * cols + i, class: 'highlighted' }]);
+                            top++;
+                            for (let i = top; i <= bottom; i++) sequence.push([{ index: i * cols + right, class: 'highlighted' }]);
+                            right--;
+                            if (top <= bottom) {
+                                for (let i = right; i >= left; i--) sequence.push([{ index: bottom * cols + i, class: 'highlighted' }]);
+                                bottom--;
+                            }
+                            if (left <= right) {
+                                for (let i = bottom; i >= top; i--) sequence.push([{ index: i * cols + left, class: 'highlighted' }]);
+                                left++;
+                            }
+                        }
+                        break;
+                    
+                    // Pointer Patterns
+                    case '2-pointer-inward':
+                        let l = 0, r = cols - 1;
+                        while(l <= r) {
+                            sequence.push([{ index: l, class: 'p1', text: 'L' }, { index: r, class: 'p2', text: 'R' }]);
+                            if (l === r) break;
+                            l++; r--;
+                        }
+                        break;
+                    case 'sliding-window':
+                        let sw_left = 0;
+                        const windowSize = 4;
+                        for (let sw_right = 0; sw_right < cols; sw_right++) {
+                            const stepHighlights = [];
+                            // Highlight window
+                            for (let i = sw_left; i <= sw_right; i++) {
+                                stepHighlights.push({ index: i, class: 'window' });
+                            }
+                            // Highlight pointers
+                            stepHighlights.push({ index: sw_left, class: 'p1', text: 'L' });
+                            stepHighlights.push({ index: sw_right, class: 'p2', text: 'R' });
+                            sequence.push(stepHighlights);
+                            if (sw_right >= windowSize - 1) {
+                                sw_left++;
+                            }
+                        }
+                        break;
+                }
+            }
+            generateSequence();
+
+            let step = 0;
+            const interval = setInterval(() => {
+                cells.forEach(c => { c.className = 'grid-cell rounded-sm'; c.textContent = ''; });
+                if (step < sequence.length) {
+                    sequence[step].forEach(p => {
+                        if (cells[p.index]) {
+                            cells[p.index].classList.add(p.class);
+                            if (p.text) cells[p.index].textContent = p.text;
+                        }
+                    });
+                    step++;
+                } else {
+                    step = 0; // Loop animation
+                }
+            }, 350);
+            animationIntervals.push(interval);
+        }
+
+        function stopAllAnimations() {
+            animationIntervals.forEach(clearInterval);
+            animationIntervals = [];
+        }
+
+        function loadQuestion() {
+            if (shuffledGenerators.length === 0) {
+                startNewQuiz();
+            }
+            
+            stopAllAnimations();
+            feedbackArea.innerHTML = '';
+            nextBtn.classList.add('hidden');
+            questionArea.innerHTML = '';
+
+            const generator = shuffledGenerators.pop();
+            const question = generator();
+
+            const codeContainer = document.createElement('div');
+            codeContainer.className = "bg-gray-900 text-white rounded-md p-4 mb-6 text-left font-mono text-sm code-block";
+            codeContainer.textContent = question.code;
+            questionArea.appendChild(codeContainer);
+
+            const optionsContainer = document.createElement('div');
+            optionsContainer.className = "grid grid-cols-1 md:grid-cols-3 gap-4 justify-items-center";
+            
+            question.options.forEach((pattern, index) => {
+                const isCorrect = pattern === question.correctPattern;
+                
+                const optionCard = document.createElement('div');
+                optionCard.className = 'option-card bg-white dark:bg-gray-700/50 p-4 rounded-lg shadow-sm flex flex-col items-center gap-3';
+                optionCard.onclick = () => handleAnswer(isCorrect, question.explanation);
+                
+                const vizId = `viz-${index}`;
+                const vizElement = document.createElement('div');
+                vizElement.id = vizId;
+
+                const patternText = document.createElement('p');
+                patternText.className = "text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase";
+                patternText.textContent = pattern.replace(/d-/g, 'D ').replace(/-/g, ' ');
+
+                optionCard.appendChild(vizElement);
+                optionCard.appendChild(patternText);
+                
+                optionCard.dataset.isCorrect = isCorrect;
+                optionsContainer.appendChild(optionCard);
+
+                setTimeout(() => createVisualization(question.dims, pattern, vizId), 0);
+            });
+            questionArea.appendChild(optionsContainer);
+        }
+
+        function handleAnswer(isCorrect, explanation) {
+            stopAllAnimations();
+            document.querySelectorAll('.option-card').forEach(el => {
+                el.onclick = null;
+                if (el.dataset.isCorrect === 'true') {
+                    el.classList.add('correct-viz');
+                } else {
+                    el.classList.add('incorrect-viz');
+                }
+            });
+
+            feedbackArea.innerHTML = '';
+            const feedbackDiv = document.createElement('div');
+            feedbackDiv.className = `p-3 rounded-lg text-center ${isCorrect ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'}`;
+            feedbackDiv.innerHTML = `<p class="font-semibold">${isCorrect ? 'Correct!' : 'Not quite.'}</p><p>${explanation}</p>`;
+            feedbackArea.appendChild(feedbackDiv);
+            
+            nextBtn.classList.remove('hidden');
+        }
+        
+        function startNewQuiz() {
+            shuffledGenerators = shuffleArray([...allGenerators]);
+            loadQuestion();
+        }
+
+        nextBtn.addEventListener('click', loadQuestion);
+        resetBtn.addEventListener('click', startNewQuiz);
+
+        window.onload = startNewQuiz;
+    </script>
+</body>
+</html>
