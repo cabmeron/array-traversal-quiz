@@ -1,5 +1,7 @@
 # array-traversal-quiz
 
+![iteration_gif](https://github.com/user-attachments/assets/31ab1741-16b9-488a-a6ac-09ea78528f82)
+
 Covered Concepts:
 
     1D Array Traversals
